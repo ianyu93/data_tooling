@@ -31,7 +31,7 @@ PROCESSES = 16
 
 
 def normalize(corpus: Path, output_dir: Path) -> Path:
-    normalized = output_dir / (corpus.stem + ".normalized")
+    normalized = output_dir / f"{corpus.stem}.normalized"
     if normalized.exists():
         return normalized
 
@@ -129,7 +129,7 @@ class ExtractSentences(jsonql.Transformer):
 
 
 def tokenize(corpus: Path, output_dir: Path, lang: str) -> Path:
-    tokenized = output_dir / (corpus.stem + ".tokenized")
+    tokenized = output_dir / f"{corpus.stem}.tokenized"
     if tokenized.exists():
         return tokenized
 
@@ -151,8 +151,8 @@ def train_lm(
     vocab_size: int = VOCAB_SIZE,
     ngrams: int = 5,
 ):
-    lm_text_file = output_dir / (corpus.stem + ".arpa")
-    lm_bin_file = output_dir / (corpus.stem + ".arpa.bin")
+    lm_text_file = output_dir / f"{corpus.stem}.arpa"
+    lm_bin_file = output_dir / f"{corpus.stem}.arpa.bin"
     if lm_bin_file.exists():
         return lm_bin_file
 
@@ -214,7 +214,7 @@ def sample(
     n: int = 10_000,
     lang: str = "en",
 ) -> Path:
-    sample_file = output_dir / (corpus.stem + ".pp_sample.tsv")
+    sample_file = output_dir / f"{corpus.stem}.pp_sample.tsv"
     if sample_file.exists():
         return sample_file
     dataset = _dataset(dataset, lang)
@@ -257,7 +257,7 @@ def mine(
     """
     dataset = _dataset(dataset, lang)
     files = list(dataset.parent.glob(dataset.name))
-    outputs = [output_dir / (f.stem + ".tsv") for f in files]
+    outputs = [output_dir / f"{f.stem}.tsv" for f in files]
     if all(o.exists() for o in outputs):
         return outputs
 

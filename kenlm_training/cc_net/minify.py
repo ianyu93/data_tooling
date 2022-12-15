@@ -52,10 +52,10 @@ def decode_hashes(compact: str) -> List[bytes]:
     all_hashes = base64.b64decode(compact)
     res = []
     assert len(all_hashes) % HASH_SIZE == 0
-    for i in range(len(all_hashes) // HASH_SIZE):
-        chunk = all_hashes[i * HASH_SIZE : (i + 1) * HASH_SIZE]
-        res.append(chunk)
-
+    res.extend(
+        all_hashes[i * HASH_SIZE : (i + 1) * HASH_SIZE]
+        for i in range(len(all_hashes) // HASH_SIZE)
+    )
     return res
 
 
@@ -92,8 +92,7 @@ class Minifier(jsonql.Transformer):
         doc["line_ids"] = encode_line_ids(line_ids)
         if p:
             doc["perplexity"] = round(p, 1)
-        s = doc.get("language_score", 0)
-        if s:
+        if s := doc.get("language_score", 0):
             doc["language_score"] = round(s, 2)
         return doc
 
@@ -115,11 +114,9 @@ class MetadataFetcher(jsonql.Transformer):
         self.missed_par = 0
         self.processed_par = 0
 
-        if isinstance(folder, str):
-            # detect path passed as string
-            if urllib.parse.urlparse(folder).scheme == "":
-                folder = Path(folder)
-                assert folder.exists(), f"Metadata folder not found: {folder}"
+        if isinstance(folder, str) and urllib.parse.urlparse(folder).scheme == "":
+            folder = Path(folder)
+            assert folder.exists(), f"Metadata folder not found: {folder}"
 
         self.folder = folder
         self.segment: str = ""
@@ -254,7 +251,7 @@ def fetch_metadata_file(
     cache_dir: Path = None,
 ):
     unminifier = MetadataFetcher(metadata_dir)
-    tmp = output.with_name("tmp." + output.name)
+    tmp = output.with_name(f"tmp.{output.name}")
     jsonql.run_pipes(unminifier, file=file, output=tmp)
     tmp.rename(output)
     return f"Fetched metadata for {file}. Results at {output}."
@@ -273,7 +270,7 @@ def fetch_metadata(
         files = [str(f) for f in sorted(folder.glob("*.json.gz"))]
         print(f"Found {len(files)} files under {folder}/*.json.gz")
 
-    assert len(files) > 0, "No files given."
+    assert files, "No files given."
     output_dir.mkdir(exist_ok=True)
 
     outputs = [output_dir / str(f).split("/")[-1] for f in files]

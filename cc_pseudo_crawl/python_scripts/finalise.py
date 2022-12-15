@@ -26,22 +26,18 @@ def get_all_datasets_to_concatenate(flavor):
     def get_rank(flavor):
         if flavor == "seed":
             return 0
-        else:
-            # TODO: fix for extended_depth
-            depth = re.match(r"^intermediate_depth_([0-9]+)$", flavor).groups()[0]
-            return int(depth)
+        # TODO: fix for extended_depth
+        depth = re.match(r"^intermediate_depth_([0-9]+)$", flavor).groups()[0]
+        return int(depth)
 
     def get_flavor(rank):
-        if rank == 0:
-            return "seed"
-        else:
-            return f"intermediate_depth_{rank}"
+        return "seed" if rank == 0 else f"intermediate_depth_{rank}"
 
     current_rank = get_rank(flavor)
     assert current_rank > 1, "seed is already finished"
     seed_datasets = [
         f"bigscience-catalogue-data/pseudo_crawl_{get_flavor(rank)}"
-        for rank in range(0, current_rank + 1)
+        for rank in range(current_rank + 1)
     ]
     intermediate_depth_datasets = [
         f"bigscience-catalogue-data/pseudo_crawl_{get_flavor(rank)}_partial"

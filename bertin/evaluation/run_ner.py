@@ -207,19 +207,18 @@ class DataTrainingArguments:
             raise ValueError(
                 "Need either a dataset name or a training/validation file."
             )
-        else:
-            if self.train_file is not None:
-                extension = self.train_file.split(".")[-1]
-                assert extension in [
-                    "csv",
-                    "json",
-                ], "`train_file` should be a csv or a json file."
-            if self.validation_file is not None:
-                extension = self.validation_file.split(".")[-1]
-                assert extension in [
-                    "csv",
-                    "json",
-                ], "`validation_file` should be a csv or a json file."
+        if self.train_file is not None:
+            extension = self.train_file.split(".")[-1]
+            assert extension in [
+                "csv",
+                "json",
+            ], "`train_file` should be a csv or a json file."
+        if self.validation_file is not None:
+            extension = self.validation_file.split(".")[-1]
+            assert extension in [
+                "csv",
+                "json",
+            ], "`validation_file` should be a csv or a json file."
         self.task_name = self.task_name.lower()
 
 
@@ -256,8 +255,10 @@ def main():
 
     # Log on each process the small summary:
     logger.warning(
-        f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}"
-        + f"distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
+        (
+            f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}"
+            + f"distributed training: {training_args.local_rank != -1}, 16-bits training: {training_args.fp16}"
+        )
     )
     logger.info(f"Training/evaluation parameters {training_args}")
 
@@ -345,8 +346,7 @@ def main():
         unique_labels = set()
         for label in labels:
             unique_labels = unique_labels | set(label)
-        label_list = list(unique_labels)
-        label_list.sort()
+        label_list = sorted(unique_labels)
         return label_list
 
     if isinstance(features[label_column_name].feature, ClassLabel):
@@ -364,9 +364,7 @@ def main():
     # The .from_pretrained methods guarantee that only one local process can concurrently
     # download model & vocab.
     config = AutoConfig.from_pretrained(
-        model_args.config_name
-        if model_args.config_name
-        else model_args.model_name_or_path,
+        model_args.config_name or model_args.model_name_or_path,
         num_labels=num_labels,
         label2id=label_to_id,
         id2label={i: l for l, i in label_to_id.items()},
@@ -377,9 +375,7 @@ def main():
     )
 
     tokenizer_name_or_path = (
-        model_args.tokenizer_name
-        if model_args.tokenizer_name
-        else model_args.model_name_or_path
+        model_args.tokenizer_name or model_args.model_name_or_path
     )
     if config.model_type in {"gpt2", "roberta"}:
         tokenizer = AutoTokenizer.from_pretrained(
@@ -402,7 +398,7 @@ def main():
 
     model = AutoModelForTokenClassification.from_pretrained(
         model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        from_tf=".ckpt" in model_args.model_name_or_path,
         config=config,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,

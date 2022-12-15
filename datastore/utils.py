@@ -51,11 +51,8 @@ def is_contiguous(arr):
 def wait_until_files_loaded(flist, max_tries=120, fs=None):  # wait 2 hrs max
     if fs is None:
         fs = os
-    if isinstance(flist, str):
-        flist = [[flist, 0]]
-    else:
-        flist = [[f, 0] for f in flist]
-    for j in range(len(flist) * max_tries):
+    flist = [[flist, 0]] if isinstance(flist, str) else [[f, 0] for f in flist]
+    for _ in range(len(flist) * max_tries):
         num_done = 0
         for i, val in enumerate(flist):
             if val is None:
@@ -63,7 +60,7 @@ def wait_until_files_loaded(flist, max_tries=120, fs=None):  # wait 2 hrs max
                 continue
             (f, incr) = val
             if incr > max_tries:
-                raise RuntimeError("Timed out while trying to wait for file " + str(f))
+                raise RuntimeError(f"Timed out while trying to wait for file {str(f)}")
             size1 = fs.stat(f).st_size
             time.sleep(min(600, 1 + incr))
             incr += 1

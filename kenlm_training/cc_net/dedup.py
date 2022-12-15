@@ -301,7 +301,7 @@ def finalize_doc(doc, field, hashes=None):
     if "original_length" not in doc:
         doc["original_length"] = doc.get("length", n_chars)
     if hashes is None:
-        hashes = doc.pop(field + "_hash")
+        hashes = doc.pop(f"{field}_hash")
 
     # Remove duplicates inside doc
     seen: Set[int] = set()

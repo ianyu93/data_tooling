@@ -19,44 +19,42 @@ from flagged_words import flagged_words
 class LoadParameters:
     @staticmethod
     def load_parameters(lang_dataset_id):
-        if lang_dataset_id in parameters_filtering:
-            param = parameters_filtering[lang_dataset_id]
-        else:
-            param = parameters_filtering["default"]
-        return param
+        return (
+            parameters_filtering[lang_dataset_id]
+            if lang_dataset_id in parameters_filtering
+            else parameters_filtering["default"]
+        )
 
     @staticmethod
     def load_stopwords(lang_dataset_id):
-        stopwords_lang_id = langs_id.loc[
-            langs_id["dataset_id"] == lang_dataset_id, "stopwords_id"
-        ].iloc[0]
-        if stopwords_lang_id:
-            stopwords_lang = set(stopwords[stopwords_lang_id])
-        else:
-            stopwords_lang = None
-        return stopwords_lang
+        return (
+            set(stopwords[stopwords_lang_id])
+            if (
+                stopwords_lang_id := langs_id.loc[
+                    langs_id["dataset_id"] == lang_dataset_id, "stopwords_id"
+                ].iloc[0]
+            )
+            else None
+        )
 
     @staticmethod
     def load_flagged_words(lang_dataset_id):
-        flagged_words_lang_id = langs_id.loc[
-            langs_id["dataset_id"] == lang_dataset_id, "flagged_words_id"
-        ].iloc[0]
-        if flagged_words_lang_id:
-            flagged_words_lang = set(flagged_words[flagged_words_lang_id])
-        else:
-            flagged_words_lang = None
-        return flagged_words_lang
+        return (
+            set(flagged_words[flagged_words_lang_id])
+            if (
+                flagged_words_lang_id := langs_id.loc[
+                    langs_id["dataset_id"] == lang_dataset_id, "flagged_words_id"
+                ].iloc[0]
+            )
+            else None
+        )
 
     @staticmethod
     def load_model_lang_id(lang_dataset_id, path_fasttext_model):
         fasttext_lang_id = langs_id.loc[
             langs_id["dataset_id"] == lang_dataset_id, "fasttext_id"
         ].iloc[0]
-        if fasttext_lang_id:
-            model_lang_id = fasttext.load_model(path_fasttext_model)
-        else:
-            model_lang_id = None
-        return model_lang_id
+        return fasttext.load_model(path_fasttext_model) if fasttext_lang_id else None
 
     @staticmethod
     def load_sentencepiece_model(lang_dataset_id, path_sentencepiece_model):
@@ -75,11 +73,7 @@ class LoadParameters:
         kenlm_lang_id = langs_id.loc[
             langs_id["dataset_id"] == lang_dataset_id, "kenlm_id"
         ].iloc[0]
-        if kenlm_lang_id:
-            kenlm_model = kenlm.Model(path_kenlm_model)
-        else:
-            kenlm_model = None
-        return kenlm_model
+        return kenlm.Model(path_kenlm_model) if kenlm_lang_id else None
 
 
 class ModifyingDocuments:
@@ -196,8 +190,7 @@ class ModifyingDocuments:
                 end_ind -= 1
             else:
                 break
-        document_stripped = document[beg_ind:end_ind]
-        return document_stripped
+        return document[beg_ind:end_ind]
 
     @staticmethod
     def get_words_from_document(
@@ -235,11 +228,10 @@ class ModifyingDocuments:
     def words_augmentation(words, group_size, join_char):
         """Augment words, especially for Chinese (without a space between words)
         and Vietnamese (with a space between syllables)."""
-        augmentation = [
+        return [
             join_char.join(words[i : i + group_size])
             for i in range(len(words) - group_size + 1)
         ]
-        return augmentation
 
     @staticmethod
     def split_on_newline_tab_whitespace(document):
@@ -264,20 +256,14 @@ class ModifyingDocuments:
             for sentence in sentences
         ]
         sentences = ["\t".join(sentence) for sentence in sentences if sentence]
-        if not sentences:
-            return ""
-        document = "\n".join(sentences)
-        return document
+        return "\n".join(sentences) if sentences else ""
 
     @staticmethod
     def should_keep_word_with_incorrect_substrings(
         word, strip_characters, incorrect_word_substrings
     ):
         word = ModifyingDocuments.strip(word, strip_characters)
-        should_keep = all(
-            [(i_substr not in word) for i_substr in incorrect_word_substrings]
-        )
-        return should_keep
+        return all(i_substr not in word for i_substr in incorrect_word_substrings)
 
     @staticmethod
     def remove_words_with_incorrect_substrings(
@@ -311,18 +297,10 @@ class ModifyingDocuments:
         if len(word) <= length_word_max_cutoff:
             return True
         word = ModifyingDocuments.strip(word, strip_characters)
-        if not word:  # The word consisted only of strip characters
-            return False
-        if len(word) <= length_word_max_cutoff:
-            return True
-        return False
+        return len(word) <= length_word_max_cutoff if word else False
 
-    def remove_long_words(
-        document,
-        strip_characters,
-        length_word_max_cutoff,
-    ):
-        sentences = ModifyingDocuments.split_on_newline_tab_whitespace(document)
+    def remove_long_words(self, strip_characters, length_word_max_cutoff):
+        sentences = ModifyingDocuments.split_on_newline_tab_whitespace(self)
         sentences = [
             [
                 [
@@ -338,8 +316,8 @@ class ModifyingDocuments:
             ]
             for sentence in sentences
         ]
-        document = ModifyingDocuments.merge_on_whitespace_tab_newline(sentences)
-        return document
+        self = ModifyingDocuments.merge_on_whitespace_tab_newline(sentences)
+        return self
 
     @staticmethod
     def modifying_documents(
@@ -417,10 +395,9 @@ class Filtering:
             lower_case=False,
             strip_characters=strip_characters,
         )
-        cond = (len(words) >= number_words_min_cutoff) and (
+        return (len(words) >= number_words_min_cutoff) and (
             len(words) <= number_words_max_cutoff
         )
-        return cond
 
     @staticmethod
     def compute_character_repetition_ratio(document, character_repetition_length):
@@ -461,8 +438,7 @@ class Filtering:
         character_repetition_ratio = Filtering.compute_character_repetition_ratio(
             document, character_repetition_length
         )
-        cond = character_repetition_ratio <= character_repetition_max_cutoff
-        return cond
+        return character_repetition_ratio <= character_repetition_max_cutoff
 
     @staticmethod
     def compute_word_repetition_ratio(
@@ -507,17 +483,15 @@ class Filtering:
         word_repetition_ratio = Filtering.compute_word_repetition_ratio(
             document, sentencepiece_model_tok, strip_characters, word_repetition_length
         )
-        cond = word_repetition_ratio <= word_repetition_max_cutoff
-        return cond
+        return word_repetition_ratio <= word_repetition_max_cutoff
 
     @staticmethod
     def compute_special_characters_ratio(document, special_characters):
         if len(document) == 0:
             return 0
-        special_characters_ratio = len(
+        return len(
             [char for char in document if char in special_characters]
         ) / len(document)
-        return special_characters_ratio
 
     @staticmethod
     def check_special_characters(
@@ -528,8 +502,7 @@ class Filtering:
         special_characters_ratio = Filtering.compute_special_characters_ratio(
             document, special_characters
         )
-        cond = special_characters_ratio <= special_characters_max_cutoff
-        return cond
+        return special_characters_ratio <= special_characters_max_cutoff
 
     @staticmethod
     def compute_stopwords_ratio(
@@ -561,8 +534,7 @@ class Filtering:
         stopwords_ratio = len(
             [word for word in words + augmentation if word in stopwords]
         ) / len(words)
-        if stopwords_ratio > 1.0:
-            stopwords_ratio = 1.0
+        stopwords_ratio = min(stopwords_ratio, 1.0)
         return stopwords_ratio
 
     @staticmethod
@@ -620,8 +592,7 @@ class Filtering:
         flagged_words_ratio = len(
             [word for word in words + augmentation if word in flagged_words]
         ) / len(words)
-        if flagged_words_ratio > 1.0:
-            flagged_words_ratio = 1.0
+        flagged_words_ratio = min(flagged_words_ratio, 1.0)
         return flagged_words_ratio
 
     @staticmethod
@@ -755,79 +726,81 @@ class Filtering:
         kenlm_model,
         perplexity_max_cutoff,
     ):
-        if cond_check_number_words:
-            if not Filtering.check_number_words(
-                document,
-                sentencepiece_model_tok,
-                strip_characters,
-                number_words_min_cutoff,
-                number_words_max_cutoff,
-            ):
-                return False
-        if cond_check_character_repetition_removal:
-            if not Filtering.check_character_repetition_removal(
+        if cond_check_number_words and not Filtering.check_number_words(
+            document,
+            sentencepiece_model_tok,
+            strip_characters,
+            number_words_min_cutoff,
+            number_words_max_cutoff,
+        ):
+            return False
+        if (
+            cond_check_character_repetition_removal
+            and not Filtering.check_character_repetition_removal(
                 document,
                 character_repetition_length,
                 character_repetition_max_cutoff,
-            ):
-                return False
-        if cond_check_word_repetition_removal:
-            if not Filtering.check_word_repetition_removal(
+            )
+        ):
+            return False
+        if (
+            cond_check_word_repetition_removal
+            and not Filtering.check_word_repetition_removal(
                 document,
                 sentencepiece_model_tok,
                 strip_characters,
                 word_repetition_length,
                 word_repetition_max_cutoff,
-            ):
-                return False
-        if cond_check_special_characters:
-            if not Filtering.check_special_characters(
+            )
+        ):
+            return False
+        if (
+            cond_check_special_characters
+            and not Filtering.check_special_characters(
                 document,
                 special_characters,
                 special_characters_max_cutoff,
-            ):
-                return False
-        if cond_check_stopwords:
-            if not Filtering.check_stopwords(
-                document,
-                sentencepiece_model_tok,
-                strip_characters,
-                cond_words_augmentation,
-                words_augmentation_group_sizes,
-                words_augmentation_join_char,
-                stopwords,
-                stopwords_min_cutoff,
-            ):
-                return False
-        if cond_check_flagged_words:
-            if not Filtering.check_flagged_words(
-                document,
-                sentencepiece_model_tok,
-                strip_characters,
-                cond_words_augmentation,
-                words_augmentation_group_sizes,
-                words_augmentation_join_char,
-                flagged_words,
-                flagged_words_max_cutoff,
-            ):
-                return False
-        if cond_check_lang_id:
-            if not Filtering.check_lang_id(
-                document,
-                lang_dataset_id,
-                model_lang_id,
-                lang_id_min_cutoff,
-            ):
-                return False
-        if cond_check_perplexity:
-            if not Filtering.check_perplexity(
+            )
+        ):
+            return False
+        if cond_check_stopwords and not Filtering.check_stopwords(
+            document,
+            sentencepiece_model_tok,
+            strip_characters,
+            cond_words_augmentation,
+            words_augmentation_group_sizes,
+            words_augmentation_join_char,
+            stopwords,
+            stopwords_min_cutoff,
+        ):
+            return False
+        if cond_check_flagged_words and not Filtering.check_flagged_words(
+            document,
+            sentencepiece_model_tok,
+            strip_characters,
+            cond_words_augmentation,
+            words_augmentation_group_sizes,
+            words_augmentation_join_char,
+            flagged_words,
+            flagged_words_max_cutoff,
+        ):
+            return False
+        if cond_check_lang_id and not Filtering.check_lang_id(
+            document,
+            lang_dataset_id,
+            model_lang_id,
+            lang_id_min_cutoff,
+        ):
+            return False
+        return bool(
+            not cond_check_perplexity
+            or Filtering.check_perplexity(
                 document,
                 sentencepiece_model,
                 kenlm_model,
                 perplexity_max_cutoff,
-            ):
-                return False
-        return True
+            )
+        )
 
 
 class FunctionDatasetFiltering:
@@ -860,7 +833,7 @@ class FunctionDatasetFiltering:
         )
 
     def __call__(self, example):
-        keep_example = Filtering.filtering(
+        return Filtering.filtering(
             document=example["text"],
             cond_check_number_words=self.param["cond_check_number_words"],
             sentencepiece_model_tok=self.sentencepiece_model_tok,
@@ -879,12 +852,20 @@ class FunctionDatasetFiltering:
             ],
             word_repetition_length=self.param["word_repetition_length"],
             word_repetition_max_cutoff=self.param["word_repetition_max_cutoff"],
-            cond_check_special_characters=self.param["cond_check_special_characters"],
+            cond_check_special_characters=self.param[
+                "cond_check_special_characters"
+            ],
             special_characters=self.param["special_characters"],
-            special_characters_max_cutoff=self.param["special_characters_max_cutoff"],
+            special_characters_max_cutoff=self.param[
+                "special_characters_max_cutoff"
+            ],
             cond_words_augmentation=self.param["cond_words_augmentation"],
-            words_augmentation_group_sizes=self.param["words_augmentation_group_sizes"],
-            words_augmentation_join_char=self.param["words_augmentation_join_char"],
+            words_augmentation_group_sizes=self.param[
+                "words_augmentation_group_sizes"
+            ],
+            words_augmentation_join_char=self.param[
+                "words_augmentation_join_char"
+            ],
             cond_check_stopwords=self.param["cond_check_stopwords"],
             stopwords=self.stopwords,
             stopwords_min_cutoff=self.param["stopwords_min_cutoff"],
@@ -900,7 +881,6 @@ class FunctionDatasetFiltering:
             kenlm_model=self.kenlm_model,
             perplexity_max_cutoff=self.param["perplexity_max_cutoff"],
         )
-        return keep_example
 
     def __reduce__(self):
         return (

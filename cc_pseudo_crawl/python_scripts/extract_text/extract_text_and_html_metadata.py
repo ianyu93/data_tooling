@@ -64,7 +64,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
 
     @property
     def new_columns_minimal_features(self) -> Dict[str, Any]:
-        features = {
+        return {
             self.col_to_store_metadata: [
                 {
                     "char_end_idx": Value("int64"),
@@ -85,7 +85,6 @@ class HtmlPreprocessor(MetadataPreprocessor):
             self.col_to_store_head: [Value("string")],
             self.col_to_store_title: [Value("string")],
         }
-        return features
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         tags_to_remove_with_content = [

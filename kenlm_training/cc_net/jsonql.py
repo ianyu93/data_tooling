@@ -328,9 +328,7 @@ def as_pipe(transformer, kwargs):
 
 
 def compose(fns: List[Transformer]) -> Transformer:
-    if len(fns) == 1:
-        return fns[0]
-    return MultiTransformer(fns)
+    return fns[0] if len(fns) == 1 else MultiTransformer(fns)
 
 
 class MultiTransformer(Transformer):
@@ -418,15 +416,11 @@ def run_pipes(
     pipes = fns[len(transformers) :]
 
     log = logging.getLogger(__name__).info
-    if inputs is None:
-        data: Iterable = open_read(file)
-    else:
-        data = inputs
-
+    data = open_read(file) if inputs is None else inputs
     if processes == -1:
         processes = os.cpu_count() or 0
 
-    with contextlib.suppress(BrokenPipeError), contextlib.ExitStack() as stack:
+    with (contextlib.suppress(BrokenPipeError), contextlib.ExitStack() as stack):
         if transformers:
             log(f"preparing {transformers}")
             transform = stack.enter_context(compose(transformers))
@@ -447,11 +441,7 @@ def run_pipes(
                 )
 
         for fn in pipes:
-            if isinstance(fn, Transformer):
-                data = fn.map(data)
-            else:
-                data = fn(data)
-
+            data = fn.map(data) if isinstance(fn, Transformer) else fn(data)
         write_jsons(data, output)
 
 
@@ -767,14 +757,9 @@ def histogram(values, bins, weights):
 
 
 def _parse_bins(bins):
-    try:
+    with contextlib.suppress(ValueError):
         if isinstance(bins, str):
-            if "," in bins:
-                bins = [int(b) for b in bins.split(",")]
-            else:
-                bins = int(bins)
-    except ValueError:
-        pass
+            bins = [int(b) for b in bins.split(",")] if "," in bins else int(bins)
     return bins
 
 
@@ -798,34 +783,31 @@ def bar_chart(hist, bins):
 
 
 def display_stats(stats, key, weights=None, bins="auto", cumulative=False):
-    out = []
     documents = stats[ALL_DOCUMENTS]
     count = stats.get(key, 0)
     r = count / documents if documents else 0
-    out.append(f"Field {key} saw {count} times ({r:5.1%})")
-
-    length = stats.get(key + ".length", None)
+    out = [f"Field {key} saw {count} times ({r:5.1%})"]
+    length = stats.get(f"{key}.length", None)
     avg_length = length // count if length else 0
     if length is not None:
         out[-1] += f", average length is {length // count}"
 
-    values = stats.get(key + ".val", None)
-    if values:
+    if values := stats.get(f"{key}.val", None):
         out[-1] += f", histogram is: (bins={bins})"
         if weights:
             if weights not in stats:
                 logging.warn(f"Warning: weights column {weights} not found.")
-            if weights + ".val" not in stats:
+            if f"{weights}.val" not in stats:
                 logging.warn(
                     f"Warning: weights column {weights} is not a numeric column."
                 )
-            weights = stats.get(weights + ".val")
+            weights = stats.get(f"{weights}.val")
         hist, bins = histogram(values, _parse_bins(bins), weights)
         if cumulative:
             hist = np.cumsum(hist)
         out += bar_chart(hist, bins)
 
-    cnt = stats.get(key + ".cnt", None)
+    cnt = stats.get(f"{key}.cnt", None)
     if avg_length < MAX_LABEL_LEN and cnt and max(cnt.values()) > 1:
         cnt = sorted(cnt.items(), key=lambda kv: kv[1], reverse=True)
         out[-1] += ", top 100 labels:"
@@ -853,22 +835,22 @@ def describe(source, columns=None, weights=None, **kwargs):
                 continue
             stats[k] = get_or_set(stats, k, 0) + 1
             if isinstance(v, str):
-                stats[k + ".length"] = get_or_set(stats, k + ".length", 0) + len(v)
+                stats[f"{k}.length"] = get_or_set(stats, f"{k}.length", 0) + len(v)
                 if len(v) > MAX_LABEL_LEN:  # Don't treat too long string as labels
                     continue
-                cnt = get_or_set(stats, k + ".cnt", collections.defaultdict(int))
+                cnt = get_or_set(stats, f"{k}.cnt", collections.defaultdict(int))
                 if v in cnt or len(cnt) < MAX_CNT_SIZE:
                     cnt[v] += 1
             elif type(v) in (int, float):
-                values = get_or_set(stats, k + ".val", [])
+                values = get_or_set(stats, f"{k}.val", [])
                 if len(values) < MAX_HIST_SIZE:
                     values.append(v)
             elif type(v) is list and len(v) and type(v[0]) in (int, float):
-                values = get_or_set(stats, k + ".val", [])
+                values = get_or_set(stats, f"{k}.val", [])
                 if len(values) < MAX_HIST_SIZE:
                     values += v
             elif type(v) is dict:
-                cnt = get_or_set(stats, k + ".cnt", collections.defaultdict(int))
+                cnt = get_or_set(stats, f"{k}.cnt", collections.defaultdict(int))
                 for label in v:
                     if label in cnt or len(cnt) < MAX_CNT_SIZE:
                         cnt[label] += 1
@@ -880,8 +862,7 @@ def describe(source, columns=None, weights=None, **kwargs):
             continue
         if "." in k or k == ALL_DOCUMENTS:
             continue
-        for line in display_stats(stats, k, weights=weights, **kwargs):
-            yield line
+        yield from display_stats(stats, k, weights=weights, **kwargs)
 
 
 def shard(lines):
@@ -1191,9 +1172,9 @@ class SplitFile:
 
 
 def get_block_readers(filename: Path, n_readers, mode="t"):
-    index_filename = filename.parent / (filename.name + ".index")
+    index_filename = filename.parent / f"{filename.name}.index"
     if not index_filename.exists():
-        return [gzip.open(filename, "r" + mode)]
+        return [gzip.open(filename, f"r{mode}")]
     index: List[int] = np.load(index_filename)
     n_chunks = len(index)
     chunk_per_reader = int(np.ceil(n_chunks / n_readers))
@@ -1216,7 +1197,7 @@ def block_reader(filename: Path) -> Iterable[str]:
     ii, nn = pattern.strip().split("/")
     i, n_readers = int(ii), int(nn)
 
-    index_filename = root + ".index"
+    index_filename = f"{root}.index"
     assert os.path.exists(
         index_filename
     ), f"Index {index_filename} not found for {filename}"
@@ -1224,25 +1205,20 @@ def block_reader(filename: Path) -> Iterable[str]:
     n_chunks = len(index)
     chunk_per_reader = int(np.ceil(n_chunks / n_readers))
     n_readers = int(np.ceil(n_chunks / chunk_per_reader))
-    # I'm not sure how to handle the case where there is less reader than expected.
-    # Currently we return empty readers.
-
-    start = 0
-    if i > 0:
-        start = index[min((i - 1) * chunk_per_reader, n_chunks - 1)]
+    start = index[min((i - 1) * chunk_per_reader, n_chunks - 1)] if i > 0 else 0
     end = index[min(i * chunk_per_reader, n_chunks - 1)]
     return _blocked_gzip_reader(root, start, end, mode="t")
 
 
 def _blocked_gzip_reader(filename, start, end, mode="t") -> Iterable[str]:
-    handle = gzip.open(filename, "r" + mode)
+    handle = gzip.open(filename, f"r{mode}")
     handle.seek(start)
     try:
         while handle.tell() < end:
-            line = handle.readline()
-            if not line:
+            if line := handle.readline():
+                yield line
+            else:
                 break
-            yield line
     finally:
         handle.close()
 
@@ -1264,7 +1240,7 @@ class BlockedGzipWriter(MultiFile):
         """Here we never actually close/open handles,
         we just write the end of block sequence."""
         if not self.current_handle:
-            mode = self.mode + "t"
+            mode = f"{self.mode}t"
             self.current_handle = tp.cast(TextIO, gzip.open(self.filename, mode))
             assert isinstance(self.current_handle.buffer, gzip.GzipFile)
             self.zipfile = self.current_handle.buffer
@@ -1289,7 +1265,7 @@ class BlockedGzipWriter(MultiFile):
         self.current_handle.close()
         self.current_handle = None
         index = np.array(self.index, dtype=np.uint64)
-        with open(str(self.filename) + ".index", "wb") as o:
+        with open(f"{str(self.filename)}.index", "wb") as o:
             np.save(o, index)
 
 
@@ -1314,7 +1290,7 @@ def mem_footprint_gb(pid=None):
 
 def _tmp(output: Path) -> Path:
     suffix = "".join(output.suffixes)
-    suffix = ".tmp" + suffix
+    suffix = f".tmp{suffix}"
     prefix = output.name[: -len(suffix)]
     _, tmp_path = tempfile.mkstemp(dir=output.parent, prefix=prefix, suffix=suffix)
     return Path(tmp_path)
@@ -1322,8 +1298,7 @@ def _tmp(output: Path) -> Path:
 
 @functools.lru_cache()
 def _tmp_dir() -> Path:
-    job_id = os.environ.get("SLURM_JOB_ID")
-    if job_id:
+    if job_id := os.environ.get("SLURM_JOB_ID"):
         return Path("/scratch/slurm_tmpdir") / job_id
 
     checkpoint = Path("/checkpoint") / os.environ.get("USER", "")

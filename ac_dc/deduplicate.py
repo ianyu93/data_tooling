@@ -289,7 +289,7 @@ def build_index(
         splits = [split] if split is not None else list(ds.keys())
         if split is None:
             logger.warning(
-                f"Using all splits to build the index, please make sure the `id` is unique globally"
+                "Using all splits to build the index, please make sure the `id` is unique globally"
             )
         for split in splits:
             with WorkerPool(n_jobs=num_proc) as pool:
@@ -543,10 +543,7 @@ def merge_shards(
 ):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
-    ds = []
-    for dir in data_dirs:
-        ds.append(load_from_disk(dir)[split])
-
+    ds = [load_from_disk(dir)[split] for dir in data_dirs]
     DatasetDict({split: concatenate_datasets(ds)}).save_to_disk(output_dir)
 
 

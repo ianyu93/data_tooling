@@ -27,9 +27,8 @@ for i in range(dataset.num_rows):
     len_text = dataset[i]["len_text"]
     stats_langid[pred_lang] = stats_langid.get(pred_lang, 0) + len_text
 
-f = open(
+with open(
     "/gpfswork/rech/six/urd43gx/code/filtering_crawl/compute_stats_langid/stats_langid.json",
     "w",
-)  # "myfile.json"
-json.dump(stats_langid, f)
-f.close()
+) as f:
+    json.dump(stats_langid, f)

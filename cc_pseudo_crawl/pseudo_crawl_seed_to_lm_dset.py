@@ -78,8 +78,7 @@ final_features
 
 # extract just the metadata we wish to keep
 def get_meta_dict(page):
-    meta = {k: page[k] for k in ["url", "content_languages", "seed_id"]}
-    return meta
+    return {k: page[k] for k in ["url", "content_languages", "seed_id"]}
 
 
 # filter text to remove certain lines (e.g. menu items, copyright notice)
@@ -118,8 +117,7 @@ def get_lines_to_skip(dset):
             for line in article.split("\n"):
                 line_counts[line.strip()] = line_counts.get(line.strip(), 0) + 1
     thres_skip = max(10, len(seen_pages) // 100)
-    skip_dict = {line: True for line, ct in line_counts.items() if ct > thres_skip}
-    return skip_dict
+    return {line: True for line, ct in line_counts.items() if ct > thres_skip}
 
 
 # create a private repository and push processed seed in jsonl format
@@ -150,14 +148,13 @@ def push_jsonl_to_hub(file_name, repo_name, token):
         repo_type="dataset",
         token=token,
     )
-    file_loc = api.upload_file(
+    return api.upload_file(
         path_or_fileobj=file_name,
         path_in_repo=file_name,
         repo_id=f"bigscience-catalogue-lm-data/{repo_name}",
         token=token,
         repo_type="dataset",
     )
-    return file_loc
 
 
 ###

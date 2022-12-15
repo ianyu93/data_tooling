@@ -226,25 +226,24 @@ class DataTrainingArguments:
             raise ValueError(
                 "Need either a dataset name or a training/validation file."
             )
-        else:
-            if self.train_file is not None:
-                extension = self.train_file.split(".")[-1]
-                assert extension in [
-                    "csv",
-                    "json",
-                    "jsonl",
-                    "txt",
-                    "gz",
-                ], "`train_file` should be a csv, a json (lines) or a txt file."
-            if self.validation_file is not None:
-                extension = self.validation_file.split(".")[-1]
-                assert extension in [
-                    "csv",
-                    "json",
-                    "jsonl",
-                    "txt",
-                    "gz",
-                ], "`validation_file` should be a csv, a json (lines) or a txt file."
+        if self.train_file is not None:
+            extension = self.train_file.split(".")[-1]
+            assert extension in [
+                "csv",
+                "json",
+                "jsonl",
+                "txt",
+                "gz",
+            ], "`train_file` should be a csv, a json (lines) or a txt file."
+        if self.validation_file is not None:
+            extension = self.validation_file.split(".")[-1]
+            assert extension in [
+                "csv",
+                "json",
+                "jsonl",
+                "txt",
+                "gz",
+            ], "`validation_file` should be a csv, a json (lines) or a txt file."
 
 
 @flax.struct.dataclass
@@ -372,8 +371,7 @@ def generate_batch_splits(samples_idx: jnp.ndarray, batch_size: int) -> jnp.ndar
     if samples_to_remove != 0:
         samples_idx = samples_idx[:-samples_to_remove]
     sections_split = num_samples // batch_size
-    batch_idx = np.split(samples_idx, sections_split)
-    return batch_idx
+    return np.split(samples_idx, sections_split)
 
 
 def advance_iter_and_group_samples(train_iterator, num_samples, max_seq_length):

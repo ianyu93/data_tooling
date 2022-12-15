@@ -27,7 +27,7 @@ def openfile(name: str, mode: str) -> TextIO:
     """
     Open files, raw text or compressed (gzip, bzip2 or xz)
     """
-    name = str(name)
+    name = name
     if name == "-":
         return sys.stdout if mode.startswith("w") else sys.stdin
     elif name.endswith(".gz"):

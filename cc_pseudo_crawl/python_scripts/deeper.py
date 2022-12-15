@@ -37,11 +37,10 @@ def get_args():
 def get_depth(flavor):
     if flavor == "seed":
         return 0
-    else:
-        # TODO: fix for extended_depth
-        empty, depth = flavor.split("intermediate_depth_")
-        assert empty == ""
-        return int(depth)
+    # TODO: fix for extended_depth
+    empty, depth = flavor.split("intermediate_depth_")
+    assert empty == ""
+    return int(depth)
 
 
 def get_deepest_split(dataset_dict):
@@ -51,8 +50,7 @@ def get_deepest_split(dataset_dict):
 
 def intermediate_next(url_candidates, previous_urls):
     """Query only those urls"""
-    new_urls_to_query = set(url_candidates) - set(previous_urls)
-    return new_urls_to_query
+    return set(url_candidates) - set(previous_urls)
 
 
 # def extended_next(url_candidates, previous_urls):
@@ -86,7 +84,7 @@ def main():
     with open(csv_output_dir / f"intermediate_depth_{new_depth}.csv", "w") as fo:
         writer = csv.writer(fo)
         writer.writerow(["url"])
-        for i, url in enumerate(intermediate_depth_urls):
+        for url in intermediate_depth_urls:
             writer.writerow([url])
 
     # with open(csv_output_dir / f"extended_depth_{new_depth}.csv", "w") as fo:

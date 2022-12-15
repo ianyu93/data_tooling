@@ -103,7 +103,7 @@ def context_check(text: str, spec: Dict, pii_pos: Tuple[int]) -> bool:
 
     # Extract context chunk
     start = max(pii_pos[0] - width[0], 0)
-    src = text[start : pii_pos[0]] + " " + text[pii_pos[1] : pii_pos[1] + width[1]]
+    src = f"{text[start:pii_pos[0]]} {text[pii_pos[1]:pii_pos[1] + width[1]]}"
 
     # Match
     if spec["regex"]:

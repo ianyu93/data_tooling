@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 
 
 def cc_wet_paths_url(dump_id: str) -> str:
-    return "/".join([WET_URL_ROOT, "crawl-data", "CC-MAIN-" + dump_id, "wet.paths.gz"])
+    return "/".join(
+        [WET_URL_ROOT, "crawl-data", f"CC-MAIN-{dump_id}", "wet.paths.gz"]
+    )
 
 
 @functools.lru_cache()
@@ -81,10 +83,7 @@ def parse_doc(headers: List[str], doc: List[str]) -> Optional[dict]:
         logger.warning("Can't parse header:", e, headers, doc)
         return None
 
-    # Docs are separated by two empty lines.
-    last = None
-    if not doc[-1] and not doc[-2]:
-        last = -2
+    last = -2 if not doc[-1] and not doc[-2] else None
     title, doc = doc[0], doc[1:last]
 
     return {
@@ -138,7 +137,7 @@ def parse_warc_file(lines: Iterable[str], min_len: int = 1) -> Iterator[dict]:
     if n_doc > 0:
         logger.info(f"Kept {n_ok:_d} documents over {n_doc:_d} ({n_ok / n_doc:.1%}).")
     else:
-        logger.info(f"Found no documents")
+        logger.info("Found no documents")
 
 
 def dl(
@@ -183,9 +182,7 @@ class CCSegmentsReader(Iterable[dict]):
 
     def open_segment(self, segment: str) -> Iterable[str]:
         url = self.segment_url(segment)
-        file: Optional[Path] = None
-        if self.cache_dir:
-            file = self.cache_dir / segment.split("/")[-1]
+        file = self.cache_dir / segment.split("/")[-1] if self.cache_dir else None
         if not file or not file.exists():
             self.retrieved_segments += 1
 

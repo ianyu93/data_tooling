@@ -87,7 +87,7 @@ def make_corpus(file: Path, tags_file: Path = None, output: Path = None) -> None
             if len(tags) == 0:
                 continue
 
-            fasttext_tags = ["__label__" + tag for tag in tags]
+            fasttext_tags = [f"__label__{tag}" for tag in tags]
             content = document["tokenized"].replace("\n", " ").lower()
             if len(content) > 200:
                 print(" ".join(fasttext_tags), content, file=o)  # type: ignore

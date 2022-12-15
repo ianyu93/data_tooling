@@ -71,7 +71,7 @@ def shard_by_seed_id(ds: Dataset, num_proc: int) -> Dict[int, Dataset]:
             batched=True,
             num_proc=num_proc,
         )
-        assert all([seed_id_ == seed_id for seed_id_ in shard["seed_id"]])
+        assert all(seed_id_ == seed_id for seed_id_ in shard["seed_id"])
         result[seed_id] = shard
     return result
 

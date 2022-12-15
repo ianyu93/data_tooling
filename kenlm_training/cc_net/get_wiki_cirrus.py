@@ -25,7 +25,7 @@ CIRRUS_DUMP_RE = re.compile(r"^(.*)wiki-\d+-cirrussearch-content\.json\.gz")
 
 
 def tmp(file: Path) -> Path:
-    return file.parent / ("tmp." + file.name)
+    return file.parent / f"tmp.{file.name}"
 
 
 def opening(
@@ -102,7 +102,7 @@ def dl(lang: str, output_dir: Path, date: str = None):
 
     assert output_dir, "--output_dir folder needed."
     output_dir.mkdir(exist_ok=True)
-    output = output_dir / (lang + ".json.gz")
+    output = output_dir / f"{lang}.json.gz"
     print(f"Downloading {lang} wiki from {urls[lang]} to {output}")
     wget(urls[lang], output)
 
@@ -126,11 +126,8 @@ def get_cirrus_urls(date: str = None) -> Dict[str, str]:
     )
     urls = {}
     for link in cirrus_page.findAll("a"):
-        match = CIRRUS_DUMP_RE.match(link.get("href"))
-        if not match:
-            continue
-
-        urls[match.group(1)] = "/".join([cirrus_url, link.get("href")])
+        if match := CIRRUS_DUMP_RE.match(link.get("href")):
+            urls[match.group(1)] = "/".join([cirrus_url, link.get("href")])
     assert urls, f"No valid download urls found at {cirrus_url}"
     return urls
 

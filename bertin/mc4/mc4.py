@@ -290,10 +290,7 @@ class Mc4(datasets.GeneratorBasedBuilder):
         self.seed = kwargs.pop("seed", None)
         self.kwargs = kwargs
         if self.sampling_method:
-            if self.seed is not None:
-                self.rng = default_rng(self.seed)
-            else:
-                self.rng = default_rng()
+            self.rng = default_rng(self.seed) if self.seed is not None else default_rng()
             if self.sampling_method == "random":
                 self.should_keep_doc = self._should_keep_doc_random
             else:
@@ -334,10 +331,7 @@ class Mc4(datasets.GeneratorBasedBuilder):
     def _should_keep_doc_gaussian(self, doc, factor=0.78, boundaries=None, **kwargs):
         width = kwargs.get("width", 9 / 2)  # width (spread) of the exponential curve
         perplexity = self.get_perplexity(doc)
-        if boundaries is not None:
-            m = boundaries[1]
-        else:
-            m = 662247.50212365
+        m = boundaries[1] if boundaries is not None else 662247.50212365
         exponential = np.exp((-1 / width) * ((perplexity - m) / m) ** 2)
         weighted_perplexity = factor * exponential
         return self.rng.uniform() < weighted_perplexity
@@ -363,9 +357,8 @@ class Mc4(datasets.GeneratorBasedBuilder):
         )
 
     def _split_generators(self, dl_manager):
-        data_urls = {}
-        for split in ["train", "validation"]:
-            data_urls[split] = [
+        data_urls = {
+            split: [
                 _DATA_URL.format(
                     language=self.config.name,
                     split_suffix="-validation" if split == "validation" else "",
@@ -375,6 +368,8 @@ class Mc4(datasets.GeneratorBasedBuilder):
                 for lang in self.config.languages
                 for index in range(_N_SHARDS_PER_SPLIT[lang][split])
             ]
+            for split in ["train", "validation"]
+        }
         if self.data_files and "train" in self.data_files:
             train_downloaded_files = self.data_files["train"]
             if not isinstance(train_downloaded_files, (tuple, list)):

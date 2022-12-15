@@ -52,7 +52,7 @@ class DocTokenizer(jsonql.Transformer):
         cache = self.tokenizers
         if lang in cache:
             return cache[lang]
-        if lang in ("th", "zh", "ja"):
+        if lang in {"th", "zh", "ja"}:
             # TODO find a tokenizer for those languages
             return None
 

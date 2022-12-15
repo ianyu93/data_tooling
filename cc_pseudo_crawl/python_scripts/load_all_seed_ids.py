@@ -12,9 +12,7 @@ def get_args():
         help="Seed full path. e.g. 'xxx/seeds.csv'",
     )
     parser.add_argument("--seed-index", type=int, required=True, help="Seed index.")
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 def main():

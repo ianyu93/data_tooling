@@ -279,9 +279,7 @@ class PerplexityBucket(jsonql.Transformer):
         pp_head, pp_tail = self.cutoffs[lang]
         if perplexity < pp_head:
             return "head"
-        if perplexity < pp_tail:
-            return "middle"
-        return "tail"
+        return "middle" if perplexity < pp_tail else "tail"
 
     def do(self, doc: dict) -> dict:
         doc["bucket"] = self.get_bucket(doc)

@@ -39,7 +39,7 @@ if __name__ == "__main__":
         table = db["user"]
         rows = [dict(name="Dolly")] * 10
         table.insert_many(rows)
-        assert list(table.find(id={"in": range(0, 2)}))[-1]["id"] == 1
+        assert list(table.find(id={"in": range(2)}))[-1]["id"] == 1
 
     if "-test_memmap" in args:
         datastore = Datastore.from_mmap(
@@ -62,8 +62,8 @@ if __name__ == "__main__":
         assert np.mean(datastore["embed"][0][0]) == 1.0
         assert set(datastore[0].keys()) == {"id", "text", "embed", "token"}
         assert len(datastore["text"]) == 24803
-        assert len(datastore[0:10]["text"]) == 10
-        assert (datastore[0:10]["token"].shape) == (10, 512)
+        assert len(datastore[:10]["text"]) == 10
+        assert datastore[:10]["token"].shape == (10, 512)
         print(datastore)
 
     if "-test_move_to_sql" in args:

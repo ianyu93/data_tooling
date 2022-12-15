@@ -49,7 +49,7 @@ class GetDataForVisualization:
         dataset = iter(self.ds)
         stats = []
         num_iter_examples = True
-        for i in tqdm(range(self.num_iter)):
+        for _ in tqdm(range(self.num_iter)):
             stats_document = {}
 
             try:
@@ -68,10 +68,8 @@ class GetDataForVisualization:
                     {
                         "len_word": len(word),
                         "incorrect_substrings": any(
-                            [
-                                (i_substr in word)
-                                for i_substr in self.param["incorrect_word_substrings"]
-                            ]
+                            i_substr in word
+                            for i_substr in self.param["incorrect_word_substrings"]
                         ),
                         "word": word,
                     }

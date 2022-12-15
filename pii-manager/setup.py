@@ -2,6 +2,7 @@
 Create pii-manager as a Python package
 """
 
+
 import io
 import sys
 import re
@@ -19,9 +20,7 @@ PYTHON_VERSION = (3, 8)
 
 if sys.version_info < PYTHON_VERSION:
     sys.exit(
-        "**** Sorry, {} {} needs at least Python {}".format(
-            PKGNAME, VERSION, ".".join(map(str, PYTHON_VERSION))
-        )
+        f'**** Sorry, {PKGNAME} {VERSION} needs at least Python {".".join(map(str, PYTHON_VERSION))}'
     )
 
 
@@ -45,7 +44,6 @@ def long_description():
 
 
 setup_args = dict(
-    # Metadata
     name=PKGNAME,
     version=VERSION,
     author="Paulo Villegas",
@@ -55,13 +53,10 @@ setup_args = dict(
     long_description=long_description(),
     license="Apache",
     url=GITHUB_URL,
-    download_url=GITHUB_URL + "/tarball/v" + VERSION,
-    # Locate packages
-    packages=find_packages("src"),  # [ PKGNAME ],
+    download_url=f"{GITHUB_URL}/tarball/v{VERSION}",
+    packages=find_packages("src"),
     package_dir={"": "src"},
-    # Requirements
     python_requires=">=3.8",
-    # Optional requirements
     extras_require={
         "test": ["pytest", "nose", "coverage"],
     },
@@ -75,7 +70,6 @@ setup_args = dict(
     },
     include_package_data=False,
     package_data={},
-    # Post-install hooks
     cmdclass={},
     keywords=["Big Science Workshop, PII"],
     classifiers=[

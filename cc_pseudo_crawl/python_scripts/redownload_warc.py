@@ -19,8 +19,7 @@ def get_args():
     parser.add_argument("--save-path", type=str, help="Where to save the datasets.")
     parser.add_argument("--use-datasets-caching", action="store_true")
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -44,11 +43,7 @@ def main():
 
     ds = load_from_disk(args.dataset_path)
 
-    if args.save_path:
-        save_path = Path(args.save_path)
-    else:
-        save_path = Path(args.dataset_path)
-
+    save_path = Path(args.save_path) if args.save_path else Path(args.dataset_path)
     download_warcs(ds, save_path, num_proc=args.num_proc)
 
 

@@ -38,9 +38,7 @@ def get_args():
     )
     parser.add_argument("--save-path", type=Path, required=True)
 
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 def convert_types(features):
@@ -134,14 +132,13 @@ def collapse_meta_(batch):
         name for name in batch.keys() if name not in columns_not_in_meta
     ]
 
-    new_batch = {
+    return {
         "text": batch["text"],
         "meta": [
-            str({key: value for key, value in zip(columns_to_collapse, row)})
+            str(dict(zip(columns_to_collapse, row)))
             for row in zip(*[batch[name] for name in columns_to_collapse])
         ],
     }
-    return new_batch
 
 
 def collapse_meta(ds: Dataset, num_proc):
@@ -184,7 +181,7 @@ def save_dataset(ds: Dataset, save_path: Path, shard_max_size: int):
         shard_path_tmp.rename(shard_path)
 
     logger.info(
-        f"Now you need to manually update update states.json to concatenate all data files"
+        "Now you need to manually update update states.json to concatenate all data files"
     )
 
 
@@ -223,7 +220,7 @@ def main():
                 datasets,
                 total=len(datasets_with_ratios),
                 unit="ba",
-                disable=bool(utils.logging.get_verbosity() == utils.logging.NOTSET),
+                disable=utils.logging.get_verbosity() == utils.logging.NOTSET,
                 desc="Loading dataset",
             )
             if ds is not None
