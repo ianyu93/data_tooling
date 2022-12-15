@@ -16,11 +16,11 @@ from cc_net import jsonql
 
 
 def get_index(file: Path) -> Path:
-    return file.parent / (file.name + ".index")
+    return file.parent / f"{file.name}.index"
 
 
 def _get_tmp(output: Path) -> Path:
-    return output.parent / (output.stem + ".tmp" + output.suffix)
+    return output.parent / f"{output.stem}.tmp{output.suffix}"
 
 
 def reshard(
@@ -49,7 +49,7 @@ def reshard(
     for _input in inputs:
         if rm_original:
             _input.unlink()
-        elif free_original:
+        else:
             # Overwrite the previous file.
             # This frees up disk space and allows doit to properly track the success.
             _input.write_text(f"Resharded into {output}")
@@ -78,14 +78,12 @@ def fast_reshard(
     tmp.replace(output)
     indexes_files = [get_index(i) for i in inputs]
     existing_indexes = sum(i.exists() for i in indexes_files)
-    assert (
-        existing_indexes == len(indexes_files) or existing_indexes == 0
-    ), "some indexes don't exist."
+    assert existing_indexes in [len(indexes_files), 0], "some indexes don't exist."
     if existing_indexes > 0:
         indexes = [np.load(idx) for idx in indexes_files]
         for i in range(len(indexes) - 1):
             indexes[i + 1] += indexes[i][-1]
-        with open(str(output) + ".index", "wb") as o:
+        with open(f"{str(output)}.index", "wb") as o:
             np.save(o, np.concatenate(indexes))
 
     if not (free_original or rm_original):
@@ -94,7 +92,7 @@ def fast_reshard(
     for _input in inputs:
         if rm_original:
             _input.unlink()
-        elif free_original:
+        else:
             # Overwrite the previous file.
             # This frees up disk space and allows doit to properly track the success.
             _input.write_text(f"Resharded into {output}")
@@ -107,7 +105,7 @@ def fast_reshard(
 def determine_groups(
     inputs: List[Path], target_size: int = 4 * 1024**3
 ) -> List[List[Path]]:
-    if len(inputs) == 0:
+    if not inputs:
         return []
 
     sample = inputs[:10]

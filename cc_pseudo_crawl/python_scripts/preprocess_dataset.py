@@ -47,9 +47,7 @@ def get_args():
         default=None,
         help="Optional argument to select a subset (used for debugging purposes). Example `10`.",
     )
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 def get_pdf_urls(batch):
@@ -99,7 +97,7 @@ def get_beautifulsoup_object(compressed_warc, mime):
                     encoding = record.rec_headers["WARC-Identified-Content-Charset"]
                     break
         except ArchiveLoadFailed as exception:
-            print(str(exception), compressed_warc)
+            print(exception, compressed_warc)
             raise exception
 
     if not encoding:
@@ -144,11 +142,10 @@ def assign_depth_(batch, depth):
 def get_depth(flavor):
     if flavor == "seed":
         return 0
-    else:
-        # TODO: fix for extended_depth
-        empty, depth = flavor.split("intermediate_depth_")
-        assert empty == ""
-        return int(depth)
+    # TODO: fix for extended_depth
+    empty, depth = flavor.split("intermediate_depth_")
+    assert empty == ""
+    return int(depth)
 
 
 def apply_preprocessing(batch, depth):
@@ -200,7 +197,7 @@ def main():
     ds = load_from_disk(args.dataset_path)
 
     if args.num_examples:
-        ds = ds.select([i for i in range(args.num_examples)])
+        ds = ds.select(list(range(args.num_examples)))
 
     depth = get_depth(args.flavor)
 
@@ -219,11 +216,7 @@ def main():
         ),
     )
 
-    if args.save_path:
-        save_path = Path(args.save_path)
-    else:
-        save_path = Path(args.dataset_path)
-
+    save_path = Path(args.save_path) if args.save_path else Path(args.dataset_path)
     logger.info(
         f"HTML extraction failed for {len([e for e in ds['html_error'] if e is not None])} rows out of {len([e for e in ds['content_mime_detected'] if e in HTML_TYPES])} rows."
     )

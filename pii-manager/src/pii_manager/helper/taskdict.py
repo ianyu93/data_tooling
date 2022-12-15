@@ -68,9 +68,8 @@ def _task_check(task: Dict, lang: str, country: TYPE_STR_LIST):
         raise InvArgException("field not a PiiEnum")
 
     # Check base fields: type & spec
-    if "type" not in task:
-        if _is_pii_class(task.get("task")):
-            task["type"] = "PiiTask"
+    if "type" not in task and _is_pii_class(task.get("task")):
+        task["type"] = "PiiTask"
     if task.get("type") not in ("PiiTask", "callable", "re", "regex"):
         raise InvArgException("unsupported task type: {}", task.get("type"))
     if "task" not in task:
@@ -105,8 +104,7 @@ def _task_check(task: Dict, lang: str, country: TYPE_STR_LIST):
 
     # Fill in doc
     if "doc" not in task and not isinstance(task["task"], str):
-        doc = getattr(task["task"], "__doc__", None)
-        if doc:
+        if doc := getattr(task["task"], "__doc__", None):
             task["doc"] = doc.strip()
 
     # Process lang
@@ -212,14 +210,12 @@ def _gather_piitasks(
     # Get all tasks defined in those files
     pii_tasks = defaultdict(list)
     for mname in modlist:
-        mod = importlib.import_module("." + mname, pkg)
-        task_list = getattr(mod, _LISTNAME, None)
-        if task_list:
+        mod = importlib.import_module(f".{mname}", pkg)
+        if task_list := getattr(mod, _LISTNAME, None):
             subdict = build_subdict(task_list, lang, country)
             for name, value in subdict.items():
                 pii_tasks[name] += value
 
-    # If debug mode is on, print out the list
     if debug:
         if not pii_tasks:
             print("... NO PII TASKS for", pkg, file=sys.stderr)
@@ -251,17 +247,17 @@ def import_processor(lang: str, country: str = None, debug: bool = False) -> Dic
     else:
         if country is None:
             country_elem = COUNTRY_ANY
-        elif country in ("in", "is"):
-            country_elem = country + "_"
+        elif country in {"in", "is"}:
+            country_elem = f"{country}_"
         else:
             country_elem = country
-        lang_elem = lang if lang not in ("is",) else lang + "_"
+        lang_elem = lang if lang not in ("is",) else f"{lang}_"
         name = f"{lang_elem}.{country_elem}"
         path = _LANG / lang_elem / country_elem
 
     # mod = importlib.import_module('...lang.' + name, __name__)
     return _gather_piitasks(
-        "pii_manager.lang." + name, path, lang, country, debug=debug
+        f"pii_manager.lang.{name}", path, lang, country, debug=debug
     )
 
 
@@ -300,15 +296,15 @@ def _gather_all_tasks(debug: bool = False):
     if debug:
         print(". DEFINED LANGUAGES:", " ".join(sorted(language_list())))
 
-    _TASKS = {}
-    for lang in language_list():
-        if lang == LANG_ANY:
-            _TASKS[lang] = import_processor(lang, debug=debug)
-        else:
-            _TASKS[lang] = {
-                country: import_processor(lang, country, debug)
-                for country in country_list(lang)
-            }
+    _TASKS = {
+        lang: import_processor(lang, debug=debug)
+        if lang == LANG_ANY
+        else {
+            country: import_processor(lang, country, debug)
+            for country in country_list(lang)
+        }
+        for lang in language_list()
+    }
 
 
 def get_taskdict(debug: bool = False) -> Dict:

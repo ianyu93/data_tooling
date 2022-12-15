@@ -19,8 +19,7 @@ def parseArgs():
         type=int,
         help="Id of the seed to split the dataset on with this script.",
     )
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def get_features():
@@ -104,7 +103,7 @@ def get_all_fasttext_info(document, model_lang_id):
     lang_pred_fasttext_id, score_pred = get_fasttext_info(
         document.replace("\n", " "), model_lang_id
     )
-    info = {
+    return {
         "lang_pred_fasttext_id": lang_pred_fasttext_id,
         "score_pred": score_pred,
         "on_lines": [
@@ -115,10 +114,11 @@ def get_all_fasttext_info(document, model_lang_id):
                 "score_pred_line": result_fasttext_line[1],
             }
             for id_line, line in enumerate(document.split("\n"))
-            for result_fasttext_line in [get_fasttext_info(line, model_lang_id)]
+            for result_fasttext_line in [
+                get_fasttext_info(line, model_lang_id)
+            ]
         ],
     }
-    return info
 
 
 class FunctionDatasetModifyingDocuments:

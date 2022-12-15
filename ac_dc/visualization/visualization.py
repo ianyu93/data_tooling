@@ -82,7 +82,7 @@ class Visualization_for_lang:
 
         docs = data[: self.num_docs]
         for doc in docs:
-            if not (self.words is None):
+            if self.words is not None:
                 del doc["words"]
             if len(doc["text"]) > self.max_len_text_display:
                 doc["text"] = (
@@ -100,10 +100,9 @@ class Visualization_for_lang:
 
     @staticmethod
     def plot_hist(dataframe, key, num_bins=50):
-        checkbox = st.checkbox(
+        if checkbox := st.checkbox(
             "Diplay distribution", value=True, key=f"display_distribution_{key[0]}"
-        )
-        if checkbox:
+        ):
             fig, ax = plt.subplots()
             val = dataframe[key[0]].values
             if np.median(val) != 0:
@@ -134,9 +133,7 @@ class Visualization_for_lang:
             conds = {}
 
             def get_cond(key, cutoff, max_cutoff):
-                if max_cutoff:
-                    return self.docs[key] <= cutoff
-                return self.docs[key] >= cutoff
+                return self.docs[key] <= cutoff if max_cutoff else self.docs[key] >= cutoff
 
             if "number_words" in columns:
                 with st.sidebar.expander("Number of words"):
@@ -384,8 +381,8 @@ class Visualization_for_lang:
             return keys, conds
 
         with st.expander(
-            f"Filtering on documents, for {self.num_docs} {self.lang} documents"
-        ):
+                f"Filtering on documents, for {self.num_docs} {self.lang} documents"
+            ):
             st.header(
                 f"Filtering on documents, for {self.num_docs} {self.lang} documents"
             )
@@ -407,11 +404,7 @@ class Visualization_for_lang:
                 )
                 chosen_label = chosen_label.split(":")[0]
                 if chosen_label != "All":
-                    cond_label = list(
-                        self.docs["labels"].apply(
-                            lambda x: True if chosen_label in x else False
-                        )
-                    )
+                    cond_label = list(self.docs["labels"].apply(lambda x: chosen_label in x))
                     self.docs = self.docs[cond_label]
 
             if self.docs.empty:
@@ -541,112 +534,108 @@ class Visualization_for_lang:
                 )
 
     def filtering_of_words(self):
-        if not (self.words is None):
-            columns = list(self.words)
+        if self.words is None:
+            return
+        columns = list(self.words)
 
-            st.sidebar.subheader("Parameter of the filtering on words")
+        st.sidebar.subheader("Parameter of the filtering on words")
 
-            conds_words = {}
+        conds_words = {}
 
-            if "len_word" in columns:
-                with st.sidebar.expander("Length of words"):
-                    cutoff_def = "If the length of a word is higher than this number, the word is removed."
-                    max_len_word = min(int(np.max(self.words["len_word"])) + 1, 200)
-                    cutoff_word = st.slider(cutoff_def, 0, max_len_word, max_len_word)
-                    new_key = ("len_word", cutoff_word, True)
-                    self.parameters.append(new_key)
-                    Visualization_for_lang.plot_hist(self.words, new_key)
-                    cond_len_words = self.words["len_word"] <= cutoff_word
-                    Visualization_for_lang.print_discarded_by_cond(cond_len_words)
-                    conds_words["len_word"] = cond_len_words
+        if "len_word" in columns:
+            with st.sidebar.expander("Length of words"):
+                cutoff_def = "If the length of a word is higher than this number, the word is removed."
+                max_len_word = min(int(np.max(self.words["len_word"])) + 1, 200)
+                cutoff_word = st.slider(cutoff_def, 0, max_len_word, max_len_word)
+                new_key = ("len_word", cutoff_word, True)
+                self.parameters.append(new_key)
+                Visualization_for_lang.plot_hist(self.words, new_key)
+                cond_len_words = self.words["len_word"] <= cutoff_word
+                Visualization_for_lang.print_discarded_by_cond(cond_len_words)
+                conds_words["len_word"] = cond_len_words
 
-            if "incorrect_substrings" in columns:
-                with st.sidebar.expander("Words with incorrect substrings"):
-                    incorrect_substrings = st.checkbox(
-                        "Remove words with incorrect substrings."
+        if "incorrect_substrings" in columns:
+            with st.sidebar.expander("Words with incorrect substrings"):
+                incorrect_substrings = st.checkbox(
+                    "Remove words with incorrect substrings."
+                )
+                self.parameters.append(
+                    ("incorrect_substrings", incorrect_substrings)
+                )
+
+                if checkbox := st.checkbox(
+                    "Diplay distribution",
+                    value=True,
+                    key="display_distribution_incorrect_substrings",
+                ):
+                    incor_sub = np.array(self.words["incorrect_substrings"]) * 1
+                    with_incor_sub = np.sum(incor_sub)
+                    without_incor_sub = len(incor_sub) - with_incor_sub
+                    st.markdown(
+                        f"Number of words with incorrect substrings: {with_incor_sub}"
                     )
-                    self.parameters.append(
-                        ("incorrect_substrings", incorrect_substrings)
+                    st.markdown(
+                        f"Number of words without incorrect substrings: {without_incor_sub}"
                     )
 
-                    checkbox = st.checkbox(
-                        "Diplay distribution",
-                        value=True,
-                        key="display_distribution_incorrect_substrings",
+                if incorrect_substrings:
+                    cond_incorrect_substrings = np.invert(
+                        self.words["incorrect_substrings"]
                     )
-                    if checkbox:
-                        incor_sub = np.array(self.words["incorrect_substrings"]) * 1
-                        with_incor_sub = np.sum(incor_sub)
-                        without_incor_sub = len(incor_sub) - with_incor_sub
-                        st.markdown(
-                            f"Number of words with incorrect substrings: {with_incor_sub}"
-                        )
-                        st.markdown(
-                            f"Number of words without incorrect substrings: {without_incor_sub}"
-                        )
-
-                    if incorrect_substrings:
-                        cond_incorrect_substrings = np.invert(
-                            self.words["incorrect_substrings"]
-                        )
-                    else:
-                        cond_incorrect_substrings = np.array(
-                            [
-                                True
-                                for i in range(len(self.words["incorrect_substrings"]))
-                            ]
-                        )
-                    Visualization_for_lang.print_discarded_by_cond(
-                        cond_incorrect_substrings
+                else:
+                    cond_incorrect_substrings = np.array(
+                        [
+                            True
+                            for _ in range(len(self.words["incorrect_substrings"]))
+                        ]
                     )
-                    conds_words["incorrect_substrings"] = cond_incorrect_substrings
+                Visualization_for_lang.print_discarded_by_cond(
+                    cond_incorrect_substrings
+                )
+                conds_words["incorrect_substrings"] = cond_incorrect_substrings
 
-            all_conds_words = np.all(list(conds_words.values()), axis=0)
+        all_conds_words = np.all(list(conds_words.values()), axis=0)
 
-            with st.expander(
-                f"Filtering on words, for {self.num_docs_for_words} {self.lang} documents"
-            ):
-                st.header(
+        with st.expander(
                     f"Filtering on words, for {self.num_docs_for_words} {self.lang} documents"
-                )
+                ):
+            st.header(
+                f"Filtering on words, for {self.num_docs_for_words} {self.lang} documents"
+            )
 
-                st.markdown(
-                    f"Since the number of words is way larger than the number of documents, "
-                    f"we consider in this section words for only {self.num_docs_for_words} documents."
-                )
+            st.markdown(
+                f"Since the number of words is way larger than the number of documents, "
+                f"we consider in this section words for only {self.num_docs_for_words} documents."
+            )
 
-                Visualization_for_lang.display_dataset(
-                    self.words, np.invert(all_conds_words), "Discarded words", "words"
-                )
+            Visualization_for_lang.display_dataset(
+                self.words, np.invert(all_conds_words), "Discarded words", "words"
+            )
 
-                # st.subheader("Display discarded words by filter")
-                display_discarded_words_by_filter = st.checkbox(
-                    "Display discarded words by filter"
-                )
+            if display_discarded_words_by_filter := st.checkbox(
+                "Display discarded words by filter"
+            ):
+                if "len_word" in columns:
+                    cond_filter = np.invert(conds_words["len_word"])
+                    Visualization_for_lang.display_dataset(
+                        self.words,
+                        cond_filter,
+                        "Discarded words for the filter on length",
+                        "words",
+                    )
 
-                if display_discarded_words_by_filter:
+                if "incorrect_substrings" in columns:
+                    cond_filter = np.invert(conds_words["incorrect_substrings"])
+                    Visualization_for_lang.display_dataset(
+                        self.words,
+                        cond_filter,
+                        "Discarded words for the filter on incorrect substrings",
+                        "words",
+                    )
 
-                    if "len_word" in columns:
-                        cond_filter = np.invert(conds_words["len_word"])
-                        Visualization_for_lang.display_dataset(
-                            self.words,
-                            cond_filter,
-                            "Discarded words for the filter on length",
-                            "words",
-                        )
-
-                    if "incorrect_substrings" in columns:
-                        cond_filter = np.invert(conds_words["incorrect_substrings"])
-                        Visualization_for_lang.display_dataset(
-                            self.words,
-                            cond_filter,
-                            "Discarded words for the filter on incorrect substrings",
-                            "words",
-                        )
-
-                Visualization_for_lang.display_dataset(
-                    self.words, all_conds_words, "Retained words", "words"
-                )
+            Visualization_for_lang.display_dataset(
+                self.words, all_conds_words, "Retained words", "words"
+            )
 
     def download_parameters(self):
         st.sidebar.subheader("Download parameters")
@@ -692,10 +681,7 @@ class Visualization_for_lang:
             is_discarded = False
 
             def is_doc_discarded(key, score):
-                if key[2]:  # max cutoff
-                    return score > key[1]
-                else:
-                    return score < key[1]
+                return score > key[1] if key[2] else score < key[1]
 
             if personal_doc:
 

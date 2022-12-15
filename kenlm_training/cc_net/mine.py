@@ -219,7 +219,7 @@ PREDEF_CONFIGS = {
 
 
 def tmp(output: Path) -> Path:
-    return output.parent / (output.stem + ".tmp" + output.suffix)
+    return output.parent / f"{output.stem}.tmp{output.suffix}"
 
 
 def finalize(tmp_output: Path, output: Path) -> None:
@@ -227,11 +227,11 @@ def finalize(tmp_output: Path, output: Path) -> None:
         warnings.warn(f"Targeted tmp output {tmp_output} doesn't exists.")
         return
 
-    tmp_index = tmp_output.parent / (tmp_output.name + ".index")
+    tmp_index = tmp_output.parent / f"{tmp_output.name}.index"
     tmp_output.rename(output)
 
     if tmp_index.exists():
-        tmp_index.rename(output.parent / (output.name + ".index"))
+        tmp_index.rename(output.parent / f"{output.name}.index")
 
 
 def _transpose(iterable: Sequence[Tuple[Any, ...]], n=-1) -> Tuple[List, ...]:
@@ -421,7 +421,7 @@ def _mine_shard(conf: Config, hashes: List[Path], shard: int, output: Path) -> s
     steps["minify"] = minify.Minifier()
 
     pattern = str(tmp_output / "{language}_{bucket}.json.gz")
-    steps["split_by_lang"] = jsonql.split(pattern=str(pattern), mkdir=True)
+    steps["split_by_lang"] = jsonql.split(pattern=pattern, mkdir=True)
 
     steps["split_by_segment"] = jsonql.split(
         split_fn=lambda doc: _get_segment(tmp_output, doc), mkdir=True
@@ -434,8 +434,7 @@ def _mine_shard(conf: Config, hashes: List[Path], shard: int, output: Path) -> s
         inputs=cc_shard,
         processes=conf.mine_num_processes,
         chunksize=100,
-        # The splitter takes care of writing to files.
-        output=tmp_output if not conf.will_split else None,
+        output=None if conf.will_split else tmp_output
     )
     finalize(tmp_output, output)
     return f"Mined {output}"
@@ -489,7 +488,7 @@ def regroup(conf: Config, all_dirs: List[Path]) -> Path:
             inputs.append(cut)
             outputs.append(output)
         print(
-            str(regroup_dir / pattern),
+            regroup_dir / pattern,
             "->",
             len(cuts),
             f"shards ({n_existing} already there).",
@@ -583,7 +582,7 @@ def _validate_test(conf: Config, output_dir: Path, generate: bool = False):
     print("*** Diff ***")
     for fname in sorted(expected_stats.keys()):
         print(fname)
-        assert fname in expected_stats, "missing file " + fname
+        assert fname in expected_stats, f"missing file {fname}"
         if expected_stats[fname]["size"] != stats[fname]["size"]:
             print(
                 "  - Expected size",
@@ -626,7 +625,7 @@ def main(config: str = "base", **config_as_dict: Any) -> None:
         )
     conf = conf._replace(**{k: v for (k, v) in config_as_dict.items() if v is not None})
 
-    print(f"Will run cc_net.mine.main with the following config:", conf)
+    print("Will run cc_net.mine.main with the following config:", conf)
 
     all_files = mine(conf)
     if conf.will_split:

@@ -121,7 +121,7 @@ class Datastore(Dataset):
 
     def __repr__(self):
         ret = FeaturesWithViews(self._info.features)
-        ret.views_map = {} if not hasattr(self, "views_map") else self.views_map
+        ret.views_map = self.views_map if hasattr(self, "views_map") else {}
         return f"Datastore({{\n    features: {ret},\n    num_rows: {self.num_rows}\n}})"
 
     @classmethod
@@ -193,23 +193,25 @@ class Datastore(Dataset):
     db_table = {}
 
     def _get_db_table(self, feature):
-        if feature in self.views_map and self.views_map[feature]["type"] == "sql":
-            table_name, connection_url = val["table_name"], val["connection_uri"]
-            if (table_name, connection_uri) in Datastore.db_table:
-                table = Datastore.db_table[(table_name, connection_uri)]
-            else:
-                if connection_uri in Datastore.db_connection:
-                    db = Datastore.db_connection[connection_uri]
-                else:
-                    Datastore.db_connection[connection_uri] = db = DatabaseExt(
-                        connection_uri
-                    )
-                Datastore.db_table[(table_name, connection_uri)] = table = db[
-                    table_name
-                ]
-            return table
-        else:
+        if (
+            feature not in self.views_map
+            or self.views_map[feature]["type"] != "sql"
+        ):
             raise RuntimeError(f"{feature} is not a sql type")
+        table_name, connection_url = val["table_name"], val["connection_uri"]
+        if (table_name, connection_uri) in Datastore.db_table:
+            table = Datastore.db_table[(table_name, connection_uri)]
+        else:
+            if connection_uri in Datastore.db_connection:
+                db = Datastore.db_connection[connection_uri]
+            else:
+                Datastore.db_connection[connection_uri] = db = DatabaseExt(
+                    connection_uri
+                )
+            Datastore.db_table[(table_name, connection_uri)] = table = db[
+                table_name
+            ]
+        return table
 
     @staticmethod
     def _add_idx(
@@ -328,10 +330,11 @@ class Datastore(Dataset):
             raise RuntimeError(f"attempting to reset the index to {primary_id}")
         else:
             self._primary_id = _primary_id
-        if not self.cache_files:
-            dataset_path = get_temporary_cache_files_directory()
-        else:
-            dataset_path = os.path.dirname(self.cache_files[0]["filename"])
+        dataset_path = (
+            os.path.dirname(self.cache_files[0]["filename"])
+            if self.cache_files
+            else get_temporary_cache_files_directory()
+        )
         if path is None:
             path = os.path.abspath(os.path.join(dataset_path, feature_view + ".mmap"))
         shape = list(shape)
@@ -341,8 +344,6 @@ class Datastore(Dataset):
                 self = Datastore.from_dataset(
                     Dataset.from_dict({primary_id: range(shape[0])}), self
                 )
-                ids = {a: 1 for a in range(len(self))}
-                self.id2idx_identity = True
             else:
                 self = self.map(
                     Datastore._add_idx,
@@ -352,15 +353,11 @@ class Datastore(Dataset):
                     num_proc=num_proc,
                     fn_kwargs={"primary_id": primary_id},
                 )
-                ids = {a: 1 for a in range(len(self))}
-                self.id2idx_identity = True
+            ids = {a: 1 for a in range(len(self))}
+            self.id2idx_identity = True
         else:
             ids = {a: 1 for a in self[primary_id]}
-        missing_ids = []
-        for id in range(shape[0]):
-            if id not in ids:
-                missing_ids.append(id)
-        if missing_ids:
+        if missing_ids := [id for id in range(shape[0]) if id not in ids]:
             self = self.add_batch({primary_id: missing_ids})
             if not hasattr(self, "id2idx_identity"):
                 self.id2idx_identity = True
@@ -513,12 +510,13 @@ class Datastore(Dataset):
         if type(feature_view) is dict:
             feature_view = list(feature_view.items())
         table = self._get_db_table(table_name, connection_uri)
-        if not feature_view and table.columns:
-            feature_view = table.columns
-        elif not feature_view:
-            raise RuntimeError(
-                f"No feature_view(s) and no column definition for table view {table_name}"
-            )
+        if not feature_view:
+            if table.columns:
+                feature_view = table.columns
+            else:
+                raise RuntimeError(
+                    f"No feature_view(s) and no column definition for table view {table_name}"
+                )
         table_ids = table.find(_columns=primary_id)
         if primary_id not in self.features:
             if len(self) == 0 and table_ids:
@@ -528,8 +526,6 @@ class Datastore(Dataset):
                     ),
                     self,
                 )
-                ids = {a: 1 for a in range(len(self))}
-                self.id2idx_identity = True
             else:
                 self = self.map(
                     Datastore._add_idx,
@@ -539,15 +535,13 @@ class Datastore(Dataset):
                     num_proc=num_proc,
                     fn_kwargs={"id": primary_id},
                 )
-                ids = {a: 1 for a in range(len(self))}
-                self.id2idx_identity = True
+            ids = {a: 1 for a in range(len(self))}
+            self.id2idx_identity = True
         else:
             ids = {a: 1 for a in self[primary_id]}
-        missing_ids = []
-        for id in table_ids:
-            if id[primary_id] not in ids:
-                missing_ids.append(id[primary_id])
-        if missing_ids:
+        if missing_ids := [
+            id[primary_id] for id in table_ids if id[primary_id] not in ids
+        ]:
             self = self.add_batch({primary_id: missing_ids})
             if not hasattr(self, "id2idx_identity"):
                 self.id2idx_identity = True

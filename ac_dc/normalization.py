@@ -3,7 +3,7 @@ from typing import Dict
 
 
 non_printing_characters_re = re.compile(
-    f"[{''.join(map(chr, list(range(0,32)) + list(range(127,160))))}]"
+    f"[{''.join(map(chr, list(range(32)) + list(range(127, 160))))}]"
 )
 
 digits_re: re.Pattern = re.compile(r"\d")

@@ -84,9 +84,7 @@ def _dl_shard(snapshot: str, shard: int) -> Iterator[Paragraph]:
     url = "/".join([S3_BUCKET, VERSION, name])
     shard_metadata: Dict[str, Dict[str, dict]] = defaultdict(dict)
     try:
-        cache_file: Optional[Path] = None
-        if WET_CACHE is not None:
-            cache_file = WET_CACHE / name
+        cache_file = WET_CACHE / name if WET_CACHE is not None else None
         metadata_file = jsonql.open_remote_file(url, cache_file)
     except:
         logging.warning(f"Couldn't open {url}")
@@ -188,11 +186,7 @@ def dl(
     - outdir: output directory
     - processes: number of processes to use
     """
-    if snapshot is None:
-        snapshots = CC_100_SNAPSHOTS
-    else:
-        snapshots = snapshot.split(",")
-
+    snapshots = CC_100_SNAPSHOTS if snapshot is None else snapshot.split(",")
     invalids = [s for s in snapshots if s not in CC_100_SNAPSHOTS]
     assert not invalids, f"Invalid snapshots {invalids}, chose from {CC_100_SNAPSHOTS}"
 

@@ -17,7 +17,7 @@ class SentencePiece:
     ):
         super().__init__()
         self.sp = sentencepiece.SentencePieceProcessor()
-        self.sp.load(str(model))
+        self.sp.load(model)
 
     def do(self, text: dict) -> dict:
         tokenized = self.sp.encode_as_pieces(text)
@@ -163,9 +163,7 @@ class KenlmModel:
         """Strips accents from a piece of text."""
         nfd = unicodedata.normalize("NFD", line)
         output = [c for c in nfd if unicodedata.category(c) != "Mn"]
-        if len(output) == line:
-            return line
-        return "".join(output)
+        return line if len(output) == line else "".join(output)
 
     def replace_unicode_punct(self, text: str) -> str:
         return "".join(self.unicode_punct.get(c, c) for c in text)

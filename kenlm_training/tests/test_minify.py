@@ -24,11 +24,11 @@ from cc_net.minify import (
 def test_encode_decode():
     sentences = ["Hello world !", "Is everyone happy in here ?"]
     hashes = get_hashes(sentences)
-    assert all([len(h) == HASH_SIZE for h in hashes])
+    assert all(len(h) == HASH_SIZE for h in hashes)
     hashes_int = [minify._b2i(h) for h in hashes]
     encoded = encode_hashes(hashes)
     decoded = decode_hashes(encoded)
-    assert all([len(d) == HASH_SIZE for d in decoded])
+    assert all(len(d) == HASH_SIZE for d in decoded)
 
     decoded_int = [minify._b2i(d) for d in decoded]
 
@@ -51,7 +51,7 @@ def test_minify():
 @pytest.fixture
 def http_from_disk(monkeypatch):
     def read_sample_file(url: str, n_retry: int = 3) -> bytes:
-        expected_url = process_wet_file.WET_URL_ROOT + "/crawl-data/sample.warc.wet"
+        expected_url = f"{process_wet_file.WET_URL_ROOT}/crawl-data/sample.warc.wet"
         assert expected_url == url
         file = Path(__file__).parent / "data" / "sample.warc.txt"
         return file.read_bytes()

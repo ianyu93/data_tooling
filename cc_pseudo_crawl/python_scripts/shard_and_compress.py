@@ -154,9 +154,11 @@ def main():
         save_split_path.mkdir(parents=True, exist_ok=True)
         num_shards = len(shards_per_split)
         for i, shard_per_split in enumerate(shards_per_split):
-            if args.index_slice is not None:
-                if args.index_slice != i % args.total_number_slice:
-                    continue
+            if (
+                args.index_slice is not None
+                and args.index_slice != i % args.total_number_slice
+            ):
+                continue
             logger.info(f"Shard has {len(shard_per_split)} rows")
             save_dataset(
                 shard_per_split,

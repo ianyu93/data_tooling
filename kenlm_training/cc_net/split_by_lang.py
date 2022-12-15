@@ -82,7 +82,7 @@ class Classifier(jsonql.Transformer):
         return predict(self.fasttext_model, text.replace("\n", ""), k=self.top)
 
     def do(self, doc: dict) -> Optional[dict]:
-        text = doc.get(self.field, None)
+        text = doc.get(self.field)
         if not text:
             return None
 
@@ -97,7 +97,7 @@ class Classifier(jsonql.Transformer):
             self.cnt[l] = self.cnt.get(l, 0) + 1
 
         if self.top == 1:
-            existing_label = doc.get(self.out_field, None)
+            existing_label = doc.get(self.out_field)
             if existing_label and labels[0] != existing_label:
                 self.n_disagreement += 1
 
@@ -107,9 +107,9 @@ class Classifier(jsonql.Transformer):
         self.n_accepted += 1
         if self.top == 1:
             doc[self.out_field] = labels[0]
-            doc[self.out_field + "_score"] = scores[0]
+            doc[f"{self.out_field}_score"] = scores[0]
         else:
-            doc[self.out_field] = {l: s for l, s in zip(labels, scores)}
+            doc[self.out_field] = dict(zip(labels, scores))
         return doc
 
     def summary(self):
@@ -143,8 +143,7 @@ def classify_and_split(file, output, pattern, **kwargs):
 
 if __name__ == "__main__":
     args = get_args()
-    pattern = args.get("pattern")
-    if pattern:
+    if pattern := args.get("pattern"):
         classify_and_split(**args)
     else:
         args.pop("pattern")

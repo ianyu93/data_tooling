@@ -34,7 +34,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         elif isinstance(obj, datetime.datetime):
             t = obj.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
             if obj.tzinfo is not None:
-                t = t[:-2] + ":" + t[-2:]
+                t = f"{t[:-2]}:{t[-2:]}"
             return t
         elif isinstance(obj, set):
             return sorted(obj, key=keygetter_set)

@@ -90,6 +90,6 @@ my_dataset.load_elasticsearch_index(
 K = 10
 scores, retrieved = my_dataset.get_nearest_examples(index, "mykje arbeid og slit", k=K)
 
-for i in range(0, min(K, len(retrieved))):
+for i in range(min(K, len(retrieved))):
     print(f"({i + 1})")
     print(f'\t@{scores[i]:.2f} - {retrieved["id"][i]} => {retrieved["text"][i]} \n')

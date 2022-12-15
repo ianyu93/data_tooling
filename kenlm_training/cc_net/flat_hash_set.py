@@ -93,12 +93,12 @@ class AbstractDedupHashSet(Sized, Iterable[np.uint64]):
         values = np.fromiter(
             (v for (k, v) in self.items()), dtype=np.uint8, count=len(self)
         )
-        with open(str(filename) + ".val", "wb") as f:
+        with open(f"{str(filename)}.val", "wb") as f:
             np.save(f, values)
 
     def load_np2(self, filename):
         keys = np.load(filename)
-        values = np.load(str(filename) + ".val")
+        values = np.load(f"{str(filename)}.val")
         self.merge(keys, values)
 
 

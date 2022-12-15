@@ -158,7 +158,7 @@ crawls = filter(lambda c: crawl_selector.match(c), crawls)
 
 
 cursor = connect(
-    s3_staging_dir="{}/staging".format(s3_location), region_name="us-east-1"
+    s3_staging_dir=f"{s3_location}/staging", region_name="us-east-1"
 ).cursor()
 
 for crawl in crawls:

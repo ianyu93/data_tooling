@@ -13,8 +13,7 @@ def get_args():
     parser = ArgumentParser()
     parser.add_argument("--dataset-dir", type=str, required=True, help="Dataset name.")
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -41,9 +40,7 @@ def main():
 
 
 def keep_failed_examples(example):
-    if example["download_exception"] is None:
-        return False
-    return True
+    return example["download_exception"] is not None
 
 
 if __name__ == "__main__":

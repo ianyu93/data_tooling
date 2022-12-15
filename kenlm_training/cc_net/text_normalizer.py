@@ -60,14 +60,12 @@ def strip_accents(line: str) -> str:
     """Strips accents from a piece of text."""
     nfd = unicodedata.normalize("NFD", line)
     output = [c for c in nfd if unicodedata.category(c) != "Mn"]
-    if len(output) == line:
-        return line
-    return "".join(output)
+    return line if len(output) == line else "".join(output)
 
 
 # Build a regex matching all control characters.
 NON_PRINTING_CHARS_RE = re.compile(
-    f"[{''.join(map(chr, list(range(0,32)) + list(range(127,160))))}]"
+    f"[{''.join(map(chr, list(range(32)) + list(range(127, 160))))}]"
 )
 DIGIT_RE = re.compile(r"\d")
 PUNCT_OR_NON_PRINTING_CHARS_RE = re.compile(
@@ -132,23 +130,13 @@ def normalize_spacing_for_tok(text: str, language: str = "en") -> str:
     # English "quotation," followed by comma, style
     if language == "en":
         res = re.sub(r"\"([,\.]+)", r"\1\"", res)
-    # Czech is confused
-    elif language == "cs" or language == "cz":
-        pass
-    # German/Spanish/French "quotation", followed by comma, style
-    else:
+    elif language not in ["cs", "cz"]:
         res = res.replace(',"', '",')
         res = re.sub(
             r"(\.+)\"(\s*[^<])", r"\"\1\2", res
         )  # don't fix period at end of sentence
 
-    if (
-        language == "de"
-        or language == "es"
-        or language == "cz"
-        or language == "cs"
-        or language == "fr"
-    ):
+    if language in {"de", "es", "cz", "cs", "fr"}:
         res = re.sub(r"(\d) (\d)", r"\1,\2", res)
     else:
         res = re.sub(r"(\d) (\d)", r"\1.\2", res)

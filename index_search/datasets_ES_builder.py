@@ -42,7 +42,7 @@ print(oscar_dataset_filtered.keys())
 
 first_split = next(iter(oscar_dataset_filtered))
 
-for i in range(0, 5):
+for i in range(5):
     print(
         f"- [#{oscar_dataset_filtered[first_split]['id'][i]}] {oscar_dataset_filtered[first_split]['text'][i]}"
     )

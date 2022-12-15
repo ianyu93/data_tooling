@@ -23,9 +23,7 @@ def get_args():
     )
     parser.add_argument("--save-dir", type=str, help="Where to save the datasets.")
     parser.add_argument("--num-shards", type=int, help="Total number of shards.")
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 def main():

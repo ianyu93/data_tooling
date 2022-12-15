@@ -69,7 +69,7 @@ def main():
 
     logger.info(f"the seed {args.seed_id} has {len(ds)} rows")
 
-    if not all([seed_id == args.seed_id for seed_id in ds["seed_id"]]):
+    if any(seed_id != args.seed_id for seed_id in ds["seed_id"]):
         logger.info("Not all rows correspond to the correct seed. We need to fix this.")
         exit(1)
 

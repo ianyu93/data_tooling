@@ -104,8 +104,7 @@ def parseArgs():
         default="../dataset_filtered/",
         help="Path to the directory where the filtered version of the dataset will be saved.",
     )
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():

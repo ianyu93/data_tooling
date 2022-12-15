@@ -82,9 +82,9 @@ def generate_plot(tsv: str, output_file_name: str, sample: Optional[int]):
             key=lambda x: int(x.split("_")[-1]),
         )
     ].values
-    logger.info(f"Running t-SNE")
+    logger.info("Running t-SNE")
     tsne_embeddings = get_tsne_embeddings(embeddings)
-    logger.info(f"Generating figure")
+    logger.info("Generating figure")
     plot = draw_interactive_scatter_plot(
         df["sentence"].values,
         tsne_embeddings[:, 0],

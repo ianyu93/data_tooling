@@ -53,17 +53,13 @@ sys.path.append(
 def multi_iter_result_proxy(rps, step=None, batch_fns=None, row_types=row_type):
     """Iterate over the ResultProxyExt."""
     for batch_fn, row_type, rp in zip(batch_fns, row_types, rps):
-        if step is None:
-            chunk = rp.fetchall()
-        else:
-            chunk = rp.fetchmany(size=step)
+        chunk = rp.fetchall() if step is None else rp.fetchmany(size=step)
         if batch_fn is not None:
             chunk = batch_fn(chunk)
         if not chunk:
             next
         if row_type is None:
-            for row in chunk:
-                yield row
+            yield from chunk
         else:
             for row in chunk:
                 yield convert_row(row_type, row)
@@ -278,28 +274,19 @@ class TableSharded(dataset.Table):
         """Check to see if the table currently exists in the database."""
         if self.shards:
             self._sync_all_shards()
-            for shard in self.shards:
-                if shard.exits:
-                    return True
-            return False
+            return any(shard.exits for shard in self.shards)
         else:
             return super().exits
 
     @property
     def table(self):
         """Get a reference to the table, which may be reflected or created."""
-        if self.shards_defs:
-            return self.shards(0).table
-        else:
-            return super().table
+        return self.shards(0).table if self.shards_defs else super().table
 
     @property
     def columns(self):
         """Get a listing of all columns that exist in the table."""
-        if self.shards_defs:
-            return self.shards(0).columns
-        else:
-            return super().columns
+        return self.shards(0).columns if self.shards_defs else super().columns
 
     def has_column(self, column):
         """Check if a column with the given name exists on this table."""
@@ -378,14 +365,13 @@ class TableSharded(dataset.Table):
 
     def has_index(self, columns):
         """Check if an index exists to cover the given ``columns``."""
-        if self.shards_defs:
-            for idx in range(len(self.shards_defs)):
-                shard = self.shards(idx)
-                if shard.has_index(columns):
-                    return True
-            return False
-        else:
+        if not self.shards_defs:
             return super().has_index(columns)
+        for idx in range(len(self.shards_defs)):
+            shard = self.shards(idx)
+            if shard.has_index(columns):
+                return True
+        return False
 
     def create_index(self, columns, name=None, **kw):
         """Create an index to speed up queries on a table.
@@ -438,10 +424,7 @@ class TableSharded(dataset.Table):
             self._sync_all_shards()
             if "_count" in kwargs:
                 return sum(
-                    shard
-                    for shard in sellf.find(
-                        *copy.deepcopy(_clauses), **copy.deepcopy(kwargs)
-                    )
+                    sellf.find(*copy.deepcopy(_clauses), **copy.deepcopy(kwargs))
                 )
             if self._primary_id in kwargs:
                 # do the case where we have specific id ranges. we pass in the queries by row id.
@@ -543,7 +526,7 @@ class TableSharded(dataset.Table):
                 # _fts_idx), assume there are other tables for each of
                 # the columns being search in the format of
                 # <name>_colummn_fts_idx
-                if self.name.endswith(f"_fts_idx"):
+                if self.name.endswith("_fts_idx"):
                     if self.name.endswith(f"_{column}_fts_idx"):
                         db, fts_table_name = self.db, self.name
                     else:
@@ -555,7 +538,7 @@ class TableSharded(dataset.Table):
                     return_id2rank_only = True
                 else:
                     db, fts_table_name = self.db, f"{self.name}_{column}_fts_idx"
-                # TODO: check if sqlite3
+                        # TODO: check if sqlite3
             q = q.replace("'", "'")
             if _limit is not None:
                 # using _limit is a hack. we want a big enough result
@@ -563,10 +546,7 @@ class TableSharded(dataset.Table):
                 # good result at _limit, but we don't want all results
                 # which could be huge. we can set the fts_max_limit as a
                 # parameter to the table or db level.
-                if kwargs:
-                    new_limit = _limit * 10
-                else:
-                    new_limit = _limit
+                new_limit = _limit * 10 if kwargs else _limit
             else:
                 new_limit = 1000000
             args2 = ""
@@ -707,10 +687,10 @@ class TableSharded(dataset.Table):
         for column in args:
             if isinstance(column, ClauseElement):
                 clauses.append(column)
-            else:
-                if not self.has_column(column):
-                    raise DatasetException("No such column: %s" % column)
+            elif self.has_column(column):
                 columns.append(column)
+            else:
+                raise DatasetException(f"No such column: {column}")
         if not len(columns):
             return iter([])
         _filter["_columns"] = columns
@@ -745,7 +725,6 @@ class TableSharded(dataset.Table):
                 ret = shard.find(*copy.deepcopy(_clauses), **kwargs_shard)
             else:
                 ret.extend(shard.find(*copy.deepcopy(_clauses), **kwargs_shard))
-            return ret
         else:
             ret = []
             for shard in self.shards:
@@ -755,7 +734,8 @@ class TableSharded(dataset.Table):
                     ret.extend(
                         shard.find(*copy.deepcopy(_clauses), **copy.deepcopy(kwargs))
                     )
-            return ret
+
+        return ret
 
     def update(self, row, keys, ensure=None, types=None, return_count=False):
         if self.shards:
@@ -791,8 +771,7 @@ class TableSharded(dataset.Table):
 
     def delete(self, *clauses, **filters):
         if self.external_fts_columns:
-            old = list(self.find(*clauses, **filters))
-            if old:
+            if old := list(self.find(*clauses, **filters)):
                 for key in old[0].keys():
                     self.update_fts(column=key, old_data=old, mode="delete")
         return super().delete(*clauses, **filters)
@@ -933,7 +912,7 @@ class DatabaseExt(dataset.Database):
             raise RuntimeError("applying an fts update to a db that is not sqlite")
         if old_data is None and mode != "insert":
             raise RuntimeError(
-                f"need to provide old data in order to update or delete the fts"
+                "need to provide old data in order to update or delete the fts"
             )
         if fts_table_name not in self.tables:
             raise RuntimeError(f"there is no fts index column for {column}")
